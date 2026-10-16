@@ -8,10 +8,11 @@
     "dev": "concurrently -k \"vite\" \"node server.js\"",
     "build": "tsc -b && vite build",
     "start": "node server.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/server.test.mjs"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0 <25"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
