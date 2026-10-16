@@ -2,3 +2,20 @@
 @media(max-width:900px){.app-shell{padding:0 4vw}.landing{gap:5%;grid-template-columns:1fr 360px}.hero h1{font-size:36px}.game-layout{grid-template-columns:minmax(0,1fr) 265px;gap:28px}.game-title h1{font-size:22px}}
 @media(max-width:700px){.app-shell{padding:0 18px}.topbar{height:65px}.brand{font-size:17px}.brand-tag{font-size:8px}.connection{font-size:0}.connection i{width:7px;height:7px}.top-right{gap:12px}.landing{display:flex;flex-direction:column;align-items:stretch;gap:28px;padding:34px 0 45px}.hero{padding:0}.hero h1{font-size:33px;margin-top:13px}.hero>p{font-size:12px}.hero-art{position:absolute;right:23px;top:102px;margin:0;opacity:.38;transform:scale(.68);transform-origin:top right}.art-caption{display:none}.join-card{position:relative;padding:23px 21px 20px;z-index:2}.card-head{margin-bottom:22px}.page-footer{height:48px}.game-layout{display:flex;flex-direction:column;align-items:stretch;gap:20px;padding:27px 0 35px}.game-title{margin-bottom:17px;align-items:flex-start}.game-title h1{font-size:21px;margin-top:9px}.game-title p{font-size:10px}.leave-btn{font-size:0;width:35px;justify-content:center;padding:0;flex:none}.leave-btn span{display:none}.board-wrap{width:min(100%,610px)}.board-frame{padding:5%;border-radius:5px}.players{margin-top:15px;gap:5px;grid-template-columns:1fr 24px 1fr}.player-card{padding:8px 7px;gap:7px}.player-stone{width:23px;height:23px}.player-status{font-size:0;gap:0}.player-status i{width:6px;height:6px}.player-info b{font-size:10px}.player-info>span{font-size:8px}.side-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px}.room-card,.control-card{padding:14px}.room-card h3{font-size:14px}.room-card>p{font-size:9px}.room-number b{width:23px;height:27px;font-size:13px}.room-number>span{gap:3px}.copy-link{font-size:9px}.waiting-indicator{font-size:9px}.tip-card,.footer-note{grid-column:1/-1}.tip-card{padding:10px}.tip-card p{font-size:9px}.control-card .section-label{margin-bottom:5px}.action-row{height:35px;font-size:10px;gap:7px}.request-box{flex-wrap:wrap}.request-box>div{flex-basis:100%;padding-bottom:5px}.footer-note{padding-bottom:2px}.toast{grid-column:1/-1}}
 @media(max-width:390px){.app-shell{padding:0 13px}.hero h1{font-size:29px}.hero-art{right:4px;transform:scale(.56)}.join-card{padding:20px 16px}.game-title h1{font-size:19px}.side-panel{grid-template-columns:1fr}.tip-card,.footer-note{grid-column:auto}.room-card,.control-card{padding:15px}.players{grid-template-columns:1fr 20px 1fr}.player-card{gap:5px;padding:7px 5px}.player-stone{width:20px;height:20px}}
+
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.6}
+button:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.board{border-right:1px solid #756241;border-bottom:1px solid #756241}
+.intersection:disabled{opacity:1}
+.invitation{margin-top:12px;user-select:text}
+.room-number>span{min-width:0;gap:3px}
+.room-number b{width:clamp(17px,3.4vw,26px);flex-shrink:0}
+@media(max-width:700px){
+  .text-input{font-size:16px;min-height:44px}
+  .action-row,.copy-link{min-height:44px}
+  .request-box button{width:44px;height:44px}
+  .room-number{padding:8px 4px}
+  .room-number button{min-height:36px;padding:4px}
+  .page-footer{padding-bottom:env(safe-area-inset-bottom)}
+}
