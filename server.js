@@ -3,6 +3,7 @@ import { WebSocketServer } from 'ws'
 import { randomBytes, randomInt } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
 import { extname, join, resolve, sep } from 'node:path'
+import { createHttpTransport } from './http-transport.js'
 
 const PORT = Number(process.env.PORT || 3001)
 const RECONNECT_MS = Number(process.env.RECONNECT_MS || 120000)
@@ -12,6 +13,7 @@ const server = createServer((req, res) => {
   let pathname
   try { pathname = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname) }
   catch { res.writeHead(400); res.end('Bad request'); return }
+  if (pathname.startsWith('/api/')) { void httpTransport(req, res, pathname); return }
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({ status: 'ok' }))
@@ -91,7 +93,7 @@ function attach(ws, room, index, name) {
   changed(room)
 }
 
-wss.on('connection', ws => {
+function acceptConnection(ws) {
   ws.isAlive = true
   ws.on('error', () => {}) // Malformed transport frames close only this client.
   ws.on('pong', () => { ws.isAlive = true })
@@ -179,7 +181,9 @@ wss.on('connection', ws => {
     p.timer.unref?.()
     changed(room)
   })
-})
+}
+wss.on('connection', acceptConnection)
+const httpTransport = createHttpTransport(acceptConnection)
 const heartbeatTimer = setInterval(() => {
   for (const ws of wss.clients) {
     if (!ws.isAlive) { ws.terminate(); continue }

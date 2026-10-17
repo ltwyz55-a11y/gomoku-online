@@ -160,3 +160,65 @@ test('reconnect preserves board, replaces old connection, and cancels only its t
   assert.equal((await expired.error({ ...a.session, type: 'reconnect' })).code, 'ROOM_EXPIRED')
   b2.ws.close(); expired.ws.close()
 })
+
+async function httpClient(t) {
+  const response = await fetch(base + '/api/connect', { method: 'POST' })
+  assert.equal(response.status, 201)
+  const { id } = await response.json()
+  const c = { state: null, session: null, messages: [] }
+  c.request = async (path, method = 'GET', body) => {
+    const r = await fetch(base + path, {
+      method, headers: { Authorization: `Bearer ${id}`, 'Content-Type': 'application/json' },
+      ...(body ? { body: JSON.stringify({ revision: c.state?.revision, ...body }) } : {}),
+    })
+    const result = await r.json()
+    for (const msg of result.messages || []) {
+      c.messages.push(msg)
+      if (msg.type === 'joined') c.session = msg
+      if (msg.type === 'state') c.state = msg
+    }
+    return { status: r.status, ...result }
+  }
+  c.send = body => c.request('/api/command', 'POST', body)
+  c.poll = () => c.request('/api/events')
+  t.after(() => c.request('/api/connection', 'DELETE'))
+  return c
+}
+test('HTTPS fallback authenticates, synchronizes two players and reconnects', async t => {
+  assert.equal((await fetch(base + '/api/events')).status, 401)
+  const a = await httpClient(t), b = await httpClient(t)
+  await a.send({ type: 'create', name: 'HTTP black' })
+  await b.send({ type: 'join', roomId: a.session.roomId, name: 'HTTP white' })
+  await a.poll()
+  assert.deepEqual(a.state, b.state)
+  await a.send({ type: 'move', x: 4, y: 4 }); await b.poll()
+  assert.equal(b.state.board[4][4], 1)
+  await a.send({ type: 'undo' }); await b.poll()
+  await b.send({ type: 'undo-response', accept: true }); await a.poll()
+  assert.deepEqual(a.state, b.state); assert.equal(a.state.board[4][4], 0)
+  const saved = a.session
+  await a.request('/api/connection', 'DELETE'); await b.poll()
+  assert.equal(b.state.players[0].connected, false)
+  const recovered = await httpClient(t)
+  await recovered.send({ ...saved, type: 'reconnect' }); await b.poll()
+  assert.equal(b.state.players[0].connected, true)
+  await recovered.send({ type: 'move', x: 5, y: 5 }); await b.poll()
+  assert.equal(b.state.board[5][5], 1)
+  await b.send({ type: 'resign' }); await recovered.poll()
+  assert.equal(recovered.state.winner, 1)
+  await recovered.send({ type: 'leave' }); await b.poll()
+  assert.equal(b.messages.at(-1).type, 'closed')
+})
+test('HTTPS and WebSocket players share one authoritative board', async t => {
+  const a = await httpClient(t), b = await client()
+  t.after(() => b.ws.close())
+  await a.send({ type: 'create', name: 'HTTP black' })
+  b.send({ type: 'join', roomId: a.session.roomId, name: 'WS white' })
+  await until(() => b.state); await a.poll()
+  await a.send({ type: 'move', x: 6, y: 6 })
+  await until(() => b.state.board[6][6] === 1)
+  b.send({ type: 'move', x: 7, y: 6 })
+  await until(() => b.state.board[6][7] === 2); await a.poll()
+  assert.deepEqual(a.state, b.state)
+  await a.send({ type: 'leave' })
+})
