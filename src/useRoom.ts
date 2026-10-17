@@ -82,7 +82,7 @@ export function useRoom() {
       ws.onopen = () => {
         if (!active(ws)) return
         clearTimeout(handshake); lastSeen = Date.now(); failures = 0; setConnected(true); setErrorMsg('')
-        setNotice(ws.mode === 'https' ? '已通过兼容模式连接，可以开始对局' : '服务器已连接')
+        setNotice('')
         const packet = session.current ? { type: 'reconnect', ...session.current, name: nameRef.current } : pending.current
         pending.current = null
         if (packet) { markBusy(); ws.send(JSON.stringify(packet)) }
@@ -97,7 +97,7 @@ export function useRoom() {
           const restored = !!session.current
           session.current = { roomId: data.roomId, token: data.token }
           write('gomoku-session', JSON.stringify(session.current), true)
-          setColor(data.color); setErrorMsg(''); setNotice(restored ? '连接已恢复' : '已加入房间')
+          setColor(data.color); setErrorMsg(''); setNotice(restored ? '连接已恢复' : '')
         } else if (data.type === 'state') {
           latestRoom.current = data; setRoom(data); clearBusy()
         } else if (data.type === 'error') {
