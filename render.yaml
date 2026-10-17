@@ -9,7 +9,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 24.21.0
-    buildCommand: npx --yes pnpm@11.25.0 install --frozen-lockfile --prod=false && npx --yes pnpm@11.25.0 run build && node --test tests/server.test.mjs
+    buildCommand: npx --yes pnpm@11.25.0 install --frozen-lockfile --prod=false && npx --yes pnpm@11.25.0 run build && npx --yes pnpm@11.25.0 run test
     startCommand: node server.js
     healthCheckPath: /health
     autoDeployTrigger: commit

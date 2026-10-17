@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { GameConnection } from './connection'
 
 export type RoomState = {
   roomId: string; revision: number; players: { name: string; connected: boolean }[]
@@ -33,7 +34,7 @@ export function useRoom() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [notice, setNotice] = useState('')
-  const socket = useRef<WebSocket | null>(null)
+  const socket = useRef<GameConnection | null>(null)
   const session = useRef(savedSession())
   const latestRoom = useRef(room)
   const nameRef = useRef(name)
@@ -44,12 +45,15 @@ export function useRoom() {
   latestRoom.current = room; nameRef.current = name
   useEffect(() => { write('gomoku-name', name) }, [name])
   function clearBusy() { busy.current = false; setLoading(false); clearTimeout(requestTimer.current) }
-  function markBusy() {
+  function markBusy(connecting = false) {
     busy.current = true; setLoading(true); clearTimeout(requestTimer.current)
     requestTimer.current = setTimeout(() => {
-      clearBusy(); setErrorMsg('服务器暂未响应，正在重新连接。免费服务唤醒可能需要约一分钟。')
+      clearBusy(); pending.current = null
+      setErrorMsg(connecting
+        ? '仍无法连接服务器，请切换 Wi-Fi 或移动网络后重试。'
+        : '本次操作未收到确认，正在恢复棋局，请勿重复落子。')
       socket.current?.close()
-    }, 15000)
+    }, connecting ? 90000 : 20000)
   }
   function clearSession() {
     session.current = null; write('gomoku-session', null, true)
@@ -59,25 +63,26 @@ export function useRoom() {
     let disposed = false, replaced = false, failures = 0, lastSeen = Date.now()
     let retry: ReturnType<typeof setTimeout> | undefined
     let handshake: ReturnType<typeof setTimeout> | undefined
-    const active = (ws: WebSocket) => !disposed && socket.current === ws
+    const active = (ws: GameConnection) => !disposed && socket.current === ws
     const schedule = () => {
       clearTimeout(retry)
       if (disposed || replaced) return
       retry = setTimeout(connect, Math.min(1000 * 2 ** Math.min(failures++, 3), 8000))
-      if (failures >= 4) setNotice('暂时无法连接，仍在重试。请检查网络；免费服务唤醒可能需要约一分钟。')
+      if (failures >= 4) setErrorMsg('连接多次失败，请切换 Wi-Fi 或移动网络后重试。服务器唤醒可能需要约一分钟。')
     }
     const connect = () => {
       if (disposed || socket.current?.readyState === WebSocket.OPEN || socket.current?.readyState === WebSocket.CONNECTING) return
       replaced = false; clearTimeout(retry)
-      const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`)
+      const ws = new GameConnection(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`)
       socket.current = ws
       handshake = setTimeout(() => {
         if (!active(ws) || ws.readyState === WebSocket.OPEN) return
         socket.current = null; ws.close(); setConnected(false); schedule()
-      }, 12000)
+      }, 85000)
       ws.onopen = () => {
         if (!active(ws)) return
-        clearTimeout(handshake); lastSeen = Date.now(); failures = 0; setConnected(true)
+        clearTimeout(handshake); lastSeen = Date.now(); failures = 0; setConnected(true); setErrorMsg('')
+        setNotice(ws.mode === 'https' ? '已通过兼容模式连接，可以开始对局' : '服务器已连接')
         const packet = session.current ? { type: 'reconnect', ...session.current, name: nameRef.current } : pending.current
         pending.current = null
         if (packet) { markBusy(); ws.send(JSON.stringify(packet)) }
@@ -105,7 +110,7 @@ export function useRoom() {
       }
       ws.onclose = () => {
         if (!active(ws)) return
-        clearTimeout(handshake); clearBusy(); socket.current = null; setConnected(false)
+        clearTimeout(handshake); if (!pending.current) clearBusy(); socket.current = null; setConnected(false)
         if (session.current) setNotice('连接中断，正在恢复对局；房间最多保留两分钟。')
         schedule()
       }
@@ -139,9 +144,8 @@ export function useRoom() {
     if (!name.trim()) { setErrorMsg('先输入你的昵称'); return }
     if (type === 'join' && !/^\d{6}$/.test(roomId.trim())) { setErrorMsg('请输入 6 位房间号'); return }
     const packet = { type, name: name.trim(), ...(type === 'join' ? { roomId: roomId.trim() } : {}) }
-    markBusy()
-    if (socket.current?.readyState === WebSocket.OPEN) socket.current.send(JSON.stringify(packet))
-    else { pending.current = packet; setNotice('正在连接服务器，请稍候…'); connectRef.current() }
+    if (socket.current?.readyState === WebSocket.OPEN) { markBusy(); socket.current.send(JSON.stringify(packet)) }
+    else { pending.current = packet; markBusy(true); setNotice('正在连接，必要时会切换兼容模式。首次唤醒可能需要约一分钟…'); connectRef.current() }
   }
   function send(packet: Packet) {
     if (busy.current) return

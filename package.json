@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "start": "node server.js",
     "preview": "vite preview",
-    "test": "node --test tests/server.test.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "engines": {
     "node": ">=22.13.0 <25"
