@@ -84,8 +84,10 @@ button > svg { flex-shrink: 0; }
 .player-status { grid-column: 2; display: flex; align-items: center; gap: 6px; font-size: 14px; color: #3d7049; }
 .player-status.offline { color: var(--muted); }
 .board-wrap { width: 100%; max-width: 640px; margin: auto; }
-.board-frame { width: 100%; aspect-ratio: 1; padding: 4.5%; background: #e8c893; border-radius: 10px; box-shadow: inset 0 0 0 1px #cdb280, 0 8px 24px #82643516; }
-.board { position: relative; width: 100%; height: 100%; border-right: 1px solid #756241; border-bottom: 1px solid #756241; }
+/* Derive height from width; absolutely positioned content cannot stretch the square. */
+.board-frame { position: relative; width: 100%; background: #e8c893; border-radius: 10px; box-shadow: inset 0 0 0 1px #cdb280, 0 8px 24px #82643516; }
+.board-frame::before { content: ''; display: block; padding-top: 100%; }
+.board { position: absolute; top: 4.5%; right: 4.5%; bottom: 4.5%; left: 4.5%; border-right: 1px solid #756241; border-bottom: 1px solid #756241; }
 .board::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(to right, #756241 1px, transparent 1px), linear-gradient(to bottom, #756241 1px, transparent 1px); background-size: calc(100% / 14) calc(100% / 14); pointer-events: none; }
 /* Board hit areas tile the grid without overlapping adjacent intersections. */
 .intersection { position: absolute; z-index: 1; width: calc(100% / 14); height: calc(100% / 14); transform: translate(-50%, -50%); border: 0; border-radius: 50%; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; }
